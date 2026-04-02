@@ -108,16 +108,17 @@ jobs:
         if: ${{ github.event.inputs.action == 'destroy' }}
         run: |
           CLUSTER_NAME="neel-2025"
+          REGION="eu-west-1"
           # List and delete all node groups attached to the cluster
-          NODE_GROUPS=$(aws eks list-nodegroups --cluster-name "$CLUSTER_NAME" --query 'nodegroups[]' --output text 2>/dev/null || true)
+          NODE_GROUPS=$(aws eks list-nodegroups --cluster-name "$CLUSTER_NAME" --region "$REGION" --query 'nodegroups[]' --output text 2>/dev/null || true)
           for NG in $NODE_GROUPS; do
             echo "Deleting node group: $NG"
-            aws eks delete-nodegroup --cluster-name "$CLUSTER_NAME" --nodegroup-name "$NG"
+            aws eks delete-nodegroup --cluster-name "$CLUSTER_NAME" --nodegroup-name "$NG" --region "$REGION"
           done
           # Wait for all node groups to be deleted
           for NG in $NODE_GROUPS; do
             echo "Waiting for node group $NG to be deleted..."
-            aws eks wait nodegroup-deleted --cluster-name "$CLUSTER_NAME" --nodegroup-name "$NG"
+            aws eks wait nodegroup-deleted --cluster-name "$CLUSTER_NAME" --nodegroup-name "$NG" --region "$REGION"
           done
           echo "All node groups cleaned up."
 
