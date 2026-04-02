@@ -16,3 +16,19 @@ variable "name" {
   default = "neel"
   description = "eks name"
 }
+
+variable "github_owner" {
+  default     = "Patel177"
+  description = "GitHub username or organization"
+}
+
+variable "github_repo" {
+  default     = "containerized-app-platform"
+  description = "GitHub repository name"
+}
+
+variable "github_token" {
+  description = "GitHub personal access token for Flux"
+  type        = string
+  sensitive   = true
+}

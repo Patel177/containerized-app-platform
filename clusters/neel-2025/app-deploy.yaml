@@ -1,0 +1,49 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: containerized-app-platform
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: ssh://git@github.com/Patel177/containerized-app-platform.git
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: neel
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: rudra-website
+  namespace: neel
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: app-deploy
+      sourceRef:
+        kind: GitRepository
+        name: containerized-app-platform
+        namespace: flux-system
+      interval: 1m
+  values:
+    replicaCount: 1
+    fullnameOverride: "neel-test"
+    image:
+      repository: 179574745671.dkr.ecr.eu-west-1.amazonaws.com/test-ecr-repo
+      pullPolicy: IfNotPresent
+      tag: "v1"
+    service:
+      type: ClusterIP
+      port: 80
+    ingress:
+      enabled: true
+      albScheme: internet-facing
+      targetType: ip
+      port: 80
