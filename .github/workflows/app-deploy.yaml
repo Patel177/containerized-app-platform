@@ -1,6 +1,11 @@
 name: Deploy resources on eks
 on:
     workflow_dispatch:
+      inputs:
+        image_tag:
+          description: 'Image tag to deploy'
+          required: true
+          default: 'v1'
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -35,4 +40,5 @@ jobs:
         helm upgrade --install rudra-website ./app-deploy \
           --namespace neel \
           --create-namespace \
+          --set image.tag=${{ inputs.image_tag }} \
           --wait

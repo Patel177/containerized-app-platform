@@ -4,7 +4,7 @@ fullnameOverride: "neel-test"
 image:
   repository: 179574745671.dkr.ecr.eu-west-1.amazonaws.com/test-ecr-repo
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "v1"
 
 imagePullSecrets: []
 nameOverride: ""
