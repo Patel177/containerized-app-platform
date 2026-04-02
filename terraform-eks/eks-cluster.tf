@@ -22,12 +22,12 @@ module "eks" {
 
   eks_managed_node_groups = {
     example = {
-      instance_types = ["t3.medium"]
+      instance_types = ["t3.small"]
       ami_type       = "AL2023_x86_64_STANDARD"
 
-      min_size = 2
-      max_size = 5
-      desired_size = 2
+      min_size = 1
+      max_size = 3
+      desired_size = 1
     }
   }
 
