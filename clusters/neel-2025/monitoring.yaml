@@ -1,0 +1,248 @@
+---
+# Namespace for all monitoring tools
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+# Helm Repository: Prometheus Community Charts
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: prometheus-community
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://prometheus-community.github.io/helm-charts
+---
+# Helm Repository: Grafana Charts (for Loki)
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: grafana
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://grafana.github.io/helm-charts
+---
+# kube-prometheus-stack: Prometheus + Grafana + AlertManager
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "72.x"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+      interval: 5m
+  values:
+    # Grafana Configuration
+    grafana:
+      enabled: true
+      adminUser: admin
+      adminPassword: admin123
+      service:
+        type: LoadBalancer
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 300m
+          memory: 256Mi
+      # Pre-configured dashboards
+      dashboardProviders:
+        dashboardproviders.yaml:
+          apiVersion: 1
+          providers:
+            - name: default
+              orgId: 1
+              folder: ""
+              type: file
+              disableDeletion: false
+              editable: true
+              options:
+                path: /var/lib/grafana/dashboards/default
+      dashboards:
+        default:
+          # Kubernetes cluster monitoring
+          kubernetes-cluster:
+            gnetId: 7249
+            revision: 1
+            datasource: Prometheus
+          # Node Exporter full dashboard
+          node-exporter:
+            gnetId: 1860
+            revision: 37
+            datasource: Prometheus
+          # Kubernetes pods monitoring
+          kubernetes-pods:
+            gnetId: 6417
+            revision: 1
+            datasource: Prometheus
+          # Nginx monitoring
+          nginx:
+            gnetId: 9614
+            revision: 1
+            datasource: Prometheus
+      # Loki as additional datasource (added after Loki is installed)
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          url: http://loki.monitoring.svc.cluster.local:3100
+          access: proxy
+          isDefault: false
+
+    # Prometheus Configuration
+    prometheus:
+      prometheusSpec:
+        retention: 7d
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 768Mi
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 10Gi
+        # Scrape config for your app
+        additionalScrapeConfigs:
+          - job_name: "rudra-website"
+            kubernetes_sd_configs:
+              - role: pod
+                namespaces:
+                  names:
+                    - neel
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]
+                regex: rudra-website
+                action: keep
+
+    # AlertManager Configuration
+    alertmanager:
+      alertmanagerSpec:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+    # Node Exporter (metrics from EC2 nodes)
+    nodeExporter:
+      enabled: true
+
+    # Kube State Metrics (metrics from K8s objects)
+    kubeStateMetrics:
+      enabled: true
+
+    # Default alerting rules
+    defaultRules:
+      create: true
+      rules:
+        etcd: false
+        kubeScheduler: false
+---
+# Loki: Log Aggregation
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: monitoring
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: loki
+      version: "6.x"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+      interval: 5m
+  values:
+    # Single binary mode (lightweight, good for small clusters)
+    deploymentMode: SingleBinary
+    loki:
+      auth_enabled: false
+      commonConfig:
+        replication_factor: 1
+      storage:
+        type: filesystem
+      schemaConfig:
+        configs:
+          - from: "2024-01-01"
+            store: tsdb
+            object_store: filesystem
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+    singleBinary:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+      persistence:
+        enabled: true
+        size: 10Gi
+    # Disable components not needed in single binary mode
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+    backend:
+      replicas: 0
+    gateway:
+      enabled: false
+    chunksCache:
+      enabled: false
+    resultsCache:
+      enabled: false
+---
+# Promtail: Ships logs from pods to Loki
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: promtail
+  namespace: monitoring
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: promtail
+      version: "6.x"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+      interval: 5m
+  values:
+    config:
+      clients:
+        - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
