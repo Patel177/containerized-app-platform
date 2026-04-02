@@ -4,6 +4,7 @@ module "eks" {
   name               = "${var.name}-2025"
   kubernetes_version = "1.33"
   endpoint_public_access = true
+  enable_cluster_creator_admin_permissions = true
 
   # EKS Addons
   addons = {
