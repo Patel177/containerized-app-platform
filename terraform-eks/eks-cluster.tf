@@ -16,6 +16,9 @@ module "eks" {
     vpc-cni = {
       before_compute = true
     }
+    aws-ebs-csi-driver = {
+      service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
+    }
   }
 
   vpc_id     = module.vpc.vpc_id
