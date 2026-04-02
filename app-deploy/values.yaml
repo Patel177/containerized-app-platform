@@ -2,7 +2,7 @@ replicaCount: 1
 fullnameOverride: "neel-test"
 
 image:
-  repository: 994682970526.dkr.ecr.us-west-1.amazonaws.com/test-ecr-repo
+  repository: 179574745671.dkr.ecr.us-west-1.amazonaws.com/test-ecr-repo
   pullPolicy: IfNotPresent
   tag: "latest"
 

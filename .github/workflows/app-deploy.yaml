@@ -5,7 +5,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-        AWS_REGION: ap-south-1 
+        AWS_REGION: eu-west-1
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
 
     - name: Deploy app-deploy helm chart to EKS
       run: |
-        helm upgrade --install flaskdeploy ./app-deploy \
+        helm upgrade --install rudra-website ./app-deploy \
           --namespace neel \
           --create-namespace \
           --wait
