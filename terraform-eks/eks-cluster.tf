@@ -15,6 +15,11 @@ module "eks" {
     kube-proxy = {}
     vpc-cni = {
       before_compute = true
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_PREFIX_DELEGATION = "true"
+        }
+      })
     }
     aws-ebs-csi-driver = {
       service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
@@ -32,6 +37,8 @@ module "eks" {
       min_size = 3
       max_size = 5
       desired_size = 3
+
+      bootstrap_extra_args = "--max-pods=110"
     }
   }
 
