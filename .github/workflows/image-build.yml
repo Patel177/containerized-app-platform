@@ -17,7 +17,7 @@ on:
         - public
 
 env:
-  AWS_REGION: us-west-1
+  AWS_REGION: eu-west-1
   ECR_REPOSITORY: test-ecr-repo
 
 jobs:
