@@ -88,6 +88,11 @@ jobs:
         working-directory: terraform-eks
         run: terraform init -backend-config="bucket=${BUCKET_NAME}"
 
+      - name: Force unlock Terraform state (if locked)
+        working-directory: terraform-eks
+        continue-on-error: true
+        run: terraform force-unlock -force 24f58093-e032-9d2f-50dc-cbc7534ce22f
+
       # Step 6: Terraform Validate
       - name: Terraform Validate
         working-directory: terraform-eks
