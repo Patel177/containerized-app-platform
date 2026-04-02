@@ -88,31 +88,10 @@ jobs:
         working-directory: terraform-eks
         run: terraform init -backend-config="bucket=${BUCKET_NAME}"
 
-      - name: Force unlock Terraform state (if locked)
-        working-directory: terraform-eks
-        continue-on-error: true
-        run: terraform force-unlock -force 24f58093-e032-9d2f-50dc-cbc7534ce22f
-
       # Step 6: Terraform Validate
       - name: Terraform Validate
         working-directory: terraform-eks
         run: terraform validate
-
-      # One-time fix: scale node group desired size to match new min_size
-      - name: Scale node group desired size
-        if: ${{ github.event.inputs.action == 'apply' }}
-        continue-on-error: true
-        run: |
-          NODE_GROUP=$(aws eks list-nodegroups --cluster-name neel-2025 --region eu-west-1 --query 'nodegroups[0]' --output text 2>/dev/null || true)
-          if [ -n "$NODE_GROUP" ] && [ "$NODE_GROUP" != "None" ]; then
-            aws eks update-nodegroup-config \
-              --cluster-name neel-2025 \
-              --nodegroup-name "$NODE_GROUP" \
-              --scaling-config minSize=2,maxSize=3,desiredSize=2 \
-              --region eu-west-1
-            echo "Waiting for node group to scale..."
-            aws eks wait nodegroup-active --cluster-name neel-2025 --nodegroup-name "$NODE_GROUP" --region eu-west-1
-          fi
 
       # Step 7: Conditional Terraform Actions
       - name: Terraform Plan
